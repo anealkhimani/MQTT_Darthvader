@@ -153,14 +153,21 @@ Each topic can have:
 }
 ```
 
-## Creating Python Scripts
+## Creating Scripts
 
-Your Python scripts will receive MQTT data via environment variables:
+Your scripts (Python or Bash) will receive MQTT data via environment variables:
 
 - `MQTT_TOPIC`: The MQTT topic that triggered the script
 - `MQTT_PAYLOAD`: The message payload (JSON string or plain text)
 
-### Example Script
+### Supported Script Types
+
+The service automatically detects and executes:
+- **Python scripts** (`.py` extension) - executed with `python3`
+- **Bash scripts** (`.sh` extension) - executed with `/bin/bash`
+- **Executable scripts** (with shebang) - executed directly
+
+### Python Script Example
 
 ```python
 #!/usr/bin/env python3
@@ -181,9 +188,31 @@ if temperature > 30:
     print(f"High temperature alert: {temperature}°C")
 ```
 
+### Bash Script Example
+
+```bash
+#!/bin/bash
+# Get MQTT data
+TOPIC="$MQTT_TOPIC"
+PAYLOAD="$MQLOAD_PAYLOAD"
+
+# Parse JSON payload (using jq if available)
+if command -v jq &> /dev/null; then
+    TEMPERATURE=$(echo "$PAYLOAD" | jq -r '.temperature')
+else
+    # Fallback parsing
+    TEMPERATURE=$(echo "$PAYLOAD" | grep -o '"temperature":[0-9.]*' | cut -d':' -f2)
+fi
+
+# Your logic here
+if [ "$TEMPERATURE" -gt 30 ]; then
+    echo "High temperature alert: ${TEMPERATURE}°C"
+fi
+```
+
 ### Script Requirements
 
-- Must be executable (`chmod +x script.py`)
+- Must be executable (`chmod +x script.py` or `chmod +x script.sh`)
 - Should exit with code 0 on success, non-zero on failure
 - Have a 30-second timeout limit
 - Can access environment variables for MQTT data
@@ -232,6 +261,12 @@ mosquitto_pub -h localhost -t "sensor/temperature" -m '{"temperature": 30.5, "hu
 
 # Device status (will trigger if status is "offline")
 mosquitto_pub -h localhost -t "device/status" -m '{"device_id": "sensor01", "status": "offline"}'
+
+# Backup trigger (will execute backup script)
+mosquitto_pub -h localhost -t "backup/trigger" -m '{"backup_type": "config", "target_dir": "/backup"}'
+
+# System update (will trigger if priority is "high")
+mosquitto_pub -h localhost -t "update/available" -m '{"update_type": "security", "priority": "high"}'
 
 # Simple message (no conditions)
 mosquitto_pub -h localhost -t "system/command" -m '{"command": "restart"}'

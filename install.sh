@@ -89,8 +89,8 @@ fi
 # Copy example scripts
 if [ -d "example_scripts" ]; then
     cp -r example_scripts/* "$SCRIPT_DIR/"
-    chmod +x "$SCRIPT_DIR"/*.py
-    chown -R "$SERVICE_USER:$SERVICE_GROUP" "$SCRIPT_DIR"/*.py
+    chmod +x "$SCRIPT_DIR"/*.py "$SCRIPT_DIR"/*.sh
+    chown -R "$SERVICE_USER:$SERVICE_GROUP" "$SCRIPT_DIR"/*.py "$SCRIPT_DIR"/*.sh
     echo "Installed example scripts"
 fi
 

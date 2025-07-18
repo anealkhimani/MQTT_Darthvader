@@ -40,6 +40,15 @@
         },
         "system/command": {
             "script": "/usr/local/bin/handle_command.py"
+        },
+        "backup/trigger": {
+            "script": "/usr/local/bin/backup_system.sh"
+        },
+        "update/available": {
+            "script": "/usr/local/bin/update_system.sh",
+            "conditions": {
+                "priority": "high"
+            }
         }
     },
     "logging": {

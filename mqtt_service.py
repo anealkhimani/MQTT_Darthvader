@@ -177,7 +177,7 @@ class MQTTService:
         return True
     
     def execute_script(self, script_path: str, topic: str, payload: str):
-        """Execute the specified Python script"""
+        """Execute the specified script (Python or Bash)"""
         if not os.path.exists(script_path):
             self.logger.error(f"Script not found: {script_path}")
             return
@@ -188,9 +188,25 @@ class MQTTService:
             env['MQTT_TOPIC'] = topic
             env['MQTT_PAYLOAD'] = payload
             
+            # Determine script type and execution method
+            script_ext = os.path.splitext(script_path)[1].lower()
+            
+            if script_ext == '.py':
+                # Execute Python script
+                cmd = [sys.executable, script_path]
+                script_type = "Python"
+            elif script_ext == '.sh' or script_path.endswith('.sh'):
+                # Execute Bash script
+                cmd = ['/bin/bash', script_path]
+                script_type = "Bash"
+            else:
+                # Try to execute directly (for scripts with shebang)
+                cmd = [script_path]
+                script_type = "Executable"
+            
             # Execute the script
             result = subprocess.run(
-                [sys.executable, script_path],
+                cmd,
                 env=env,
                 capture_output=True,
                 text=True,
@@ -198,11 +214,11 @@ class MQTTService:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"Script {script_path} executed successfully")
+                self.logger.info(f"{script_type} script {script_path} executed successfully")
                 if result.stdout:
                     self.logger.debug(f"Script output: {result.stdout}")
             else:
-                self.logger.error(f"Script {script_path} failed with return code {result.returncode}")
+                self.logger.error(f"{script_type} script {script_path} failed with return code {result.returncode}")
                 if result.stderr:
                     self.logger.error(f"Script error: {result.stderr}")
                     
