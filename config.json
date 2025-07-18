@@ -1,0 +1,49 @@
+{
+    "mqtt": {
+        "broker": "localhost",
+        "port": 1883,
+        "username": null,
+        "password": null,
+        "client_id": "mqtt-service",
+        "keepalive": 60
+    },
+    "topics": {
+        "sensor/temperature": {
+            "script": "/usr/local/bin/handle_temperature.py",
+            "conditions": {
+                "temperature": {
+                    "operator": ">",
+                    "threshold": 25.0
+                }
+            }
+        },
+        "sensor/humidity": {
+            "script": "/usr/local/bin/handle_humidity.py",
+            "conditions": {
+                "humidity": {
+                    "operator": "<",
+                    "threshold": 30.0
+                }
+            }
+        },
+        "device/status": {
+            "script": "/usr/local/bin/handle_device_status.py",
+            "conditions": {
+                "status": "offline"
+            }
+        },
+        "alarm/trigger": {
+            "script": "/usr/local/bin/handle_alarm.py",
+            "conditions": {
+                "triggered": true
+            }
+        },
+        "system/command": {
+            "script": "/usr/local/bin/handle_command.py"
+        }
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    }
+}

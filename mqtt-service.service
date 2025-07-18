@@ -1,0 +1,29 @@
+[Unit]
+Description=MQTT Service - Listens for MQTT topics and executes Python scripts
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=mqtt-service
+Group=mqtt-service
+ExecStart=/usr/local/bin/mqtt_service.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mqtt-service
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/mqtt-service /var/run /etc/mqtt-service
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target 
