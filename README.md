@@ -192,22 +192,62 @@ if temperature > 30:
 
 ```bash
 #!/bin/bash
-# Get MQTT data
+# Example bash script to handle MQTT messages
+# This script is called by the MQTT service when conditions are met
+
+# Setup logging
+LOG_FILE="/var/log/mqtt-service/example.log"
+exec 1> >(tee -a "$LOG_FILE")
+exec 2> >(tee -a "$LOG_FILE" >&2)
+
+# Get MQTT data from environment variables
 TOPIC="$MQTT_TOPIC"
-PAYLOAD="$MQLOAD_PAYLOAD"
+PAYLOAD="$MQTT_PAYLOAD"
+
+echo "$(date): Script triggered for topic: $TOPIC"
+echo "Payload: $PAYLOAD"
 
 # Parse JSON payload (using jq if available)
 if command -v jq &> /dev/null; then
-    TEMPERATURE=$(echo "$PAYLOAD" | jq -r '.temperature')
+    TEMPERATURE=$(echo "$PAYLOAD" | jq -r '.temperature // "N/A"')
+    HUMIDITY=$(echo "$PAYLOAD" | jq -r '.humidity // "N/A"')
+    LOCATION=$(echo "$PAYLOAD" | jq -r '.location // "unknown"')
 else
-    # Fallback parsing
-    TEMPERATURE=$(echo "$PAYLOAD" | grep -o '"temperature":[0-9.]*' | cut -d':' -f2)
+    # Fallback parsing without jq
+    TEMPERATURE=$(echo "$PAYLOAD" | grep -o '"temperature":[0-9.]*' | cut -d':' -f2 || echo "N/A")
+    HUMIDITY=$(echo "$PAYLOAD" | grep -o '"humidity":[0-9.]*' | cut -d':' -f2 || echo "N/A")
+    LOCATION=$(echo "$PAYLOAD" | grep -o '"location":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
 fi
 
+echo "Temperature: $TEMPERATURE°C"
+echo "Humidity: $HUMIDITY%"
+echo "Location: $LOCATION"
+
 # Your logic here
-if [ "$TEMPERATURE" -gt 30 ]; then
-    echo "High temperature alert: ${TEMPERATURE}°C"
+if [ "$TEMPERATURE" != "N/A" ] && [ "$TEMPERATURE" -gt 30 ]; then
+    echo "ALERT: High temperature detected: ${TEMPERATURE}°C"
+    
+    # Example: Send notification
+    echo "High temperature alert at $(date)" | logger -t mqtt-alert
+    
+    # Example: Write to alert file
+    echo "$(date) - High temperature: ${TEMPERATURE}°C at $LOCATION" >> /var/log/mqtt-service/alerts.log
 fi
+
+if [ "$HUMIDITY" != "N/A" ] && [ "$HUMIDITY" -lt 30 ]; then
+    echo "ALERT: Low humidity detected: ${HUMIDITY}%"
+    echo "$(date) - Low humidity: ${HUMIDITY}% at $LOCATION" >> /var/log/mqtt-service/alerts.log
+fi
+
+# Example: Store data in CSV format
+CSV_FILE="/var/log/mqtt-service/sensor_data.csv"
+if [ ! -f "$CSV_FILE" ]; then
+    echo "timestamp,topic,temperature,humidity,location" > "$CSV_FILE"
+fi
+
+echo "$(date),$TOPIC,$TEMPERATURE,$HUMIDITY,$LOCATION" >> "$CSV_FILE"
+
+echo "$(date): Script completed successfully"
 ```
 
 ### Script Requirements
